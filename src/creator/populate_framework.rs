@@ -126,7 +126,7 @@ func NewConfig() (*Config, error) {
 		return nil, fmt.Errorf("Error converting CONCURRENCY_CAPACITY to int: %v", err)
 	}
 
-	warrantyTableName := os.Getenv("PRODUCT_TABLE_NAME")
+	warrantyTableName := os.Getenv("TABLE_NAME")
 	if warrantyTableName == "" {
 		return nil, fmt.Errorf("WARRANTY_TABLE_NAME environment variable not set")
 	}
