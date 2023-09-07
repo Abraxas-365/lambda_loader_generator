@@ -176,12 +176,12 @@ func LogError(ctx *lambdacontext.LambdaContext, err error) {
 }
 "#;
 
-const AWSOBJECT: &str = r#"package awsobject
+const AWSOBJECT: &str = r#"
+package awsobject
 
 import (
-	"encoding/csv"
 	"fmt"
-
+	"io"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -191,7 +191,7 @@ import (
 
 type AwsSavableObjects interface {
 	Chunk(chunkSize int) [][]interface{}
-	ReadFromCsv(reader *csv.Reader) error
+	FromJSONFileToArray(reader io.Reader) error
 }
 
 type AwsClient struct {
@@ -212,21 +212,20 @@ func NewAwsClient(sess *session.Session, table string) *AwsClient {
 }
 
 func (a *AwsClient) BatchWriteItem(object AwsSavableObjects) error {
-	chunks := object.Chunk(1)
+	chunks := object.Chunk(25)
 	fmt.Println("Starting to write")
 
 	for _, chunk := range chunks {
-		fmt.Println(chunk)
 		// Create write requests
 		writeRequests, err := a.createWriteRequests(chunk)
 		if err != nil {
-			return err
+			return err // Consider how you want to handle errors
 		}
 
 		// Write the chunk
 		err = a.writeChunk(writeRequests)
 		if err != nil {
-			return err
+			return err // Consider how you want to handle errors
 		}
 	}
 
@@ -301,16 +300,19 @@ func (a *AwsClient) createWriteRequests(chunk []interface{}) ([]*dynamodb.WriteR
 }
 
 func (a *AwsClient) writeChunk(writeRequests []*dynamodb.WriteRequest) error {
+	fmt.Println("Writing chunk")
 	input := &dynamodb.BatchWriteItemInput{
 		RequestItems: map[string][]*dynamodb.WriteRequest{
 			a.dynamoTable: writeRequests,
 		},
 	}
 
+	fmt.Println("Writing chunk2")
 	_, err := a.dynamodb.BatchWriteItem(input)
 	if err != nil {
 		return fmt.Errorf("Error writing items: %v", err)
 	}
+	fmt.Println("Writing chunk3")
 	return nil
 }
 
@@ -321,16 +323,18 @@ func (a *AwsClient) ReadFromS3(bucket, key string, object AwsSavableObjects) (Aw
 		Key:    aws.String(key),
 	}
 
-	result, err := a.s3.GetObject(input)
+result, err := a.s3.GetObject(input)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting object from S3: %w", err)
 	}
 
 	defer result.Body.Close()
 
-	csvReader := csv.NewReader(result.Body)
-
-	object.ReadFromCsv(csvReader)
+	// object.ReadFromCsv(csvReader) // We replace this line
+	err = object.FromJSONFileToArray(result.Body)
+	if err != nil {
+		return nil, err
+	}
 
 	return object, nil
 }
