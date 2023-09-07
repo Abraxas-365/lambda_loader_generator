@@ -52,6 +52,9 @@ To run the utility:
 ./target/release/gocodegen -y path/to/your.yaml -o path/to/output/dir
 ```
 
+To run the YAML generator:
+./target/release/yamlgen -j path/to/your.json -f path/to/output.yaml
+
 - The go project have 2 env variables
 
 1. CONCURRENCY
@@ -61,6 +64,47 @@ To run the utility:
 
 - `-y`, `--yml` : Specifies the path to the YAML file (required).
 - `-o`, `--output`: Specifies the directory where the Go code will be generated (required).
+- `-j`, `--json`: Specifies the path to the JSON file that you'd like to convert (required).
+- `-f`, `--output_yaml`: Specifies the path where the generated YAML file will be saved (required).
+
+### Example JSON
+
+You can provide a JSON like the one shown below:
+
+```json
+{
+  "name": "John Doe",
+  "age": 30,
+  "tags": ["developer", "gamer", "reader"],
+  "scores": [90, 85, 88, 78],
+  "contactInfo": {
+    "email": "johndoe@example.com",
+    "phoneNumber": "+1234567890"
+  }
+}
+```
+
+And the utility will generate a corresponding YAML in the format that our Go code generation tool can interpret:
+
+```yaml
+project_name: "MyGoProject"
+name: "Person"
+fields:
+  - name: "Name"
+    type: "string"
+    json_name: "name"
+    dynamo_name: "NAME"
+  - name: "Age"
+    type: "int"
+    json_name: "age"
+    dynamo_name: "AGE"
+  - name: "Tags"
+    type: "string"
+    is_slice: true
+    json_name: "tags"
+    dynamo_name: "TAGS"
+  # ... and so on
+```
 
 ### Example YAML
 
