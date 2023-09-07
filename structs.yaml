@@ -1,0 +1,15 @@
+project_name: "MyGoProject"
+name: Person
+fields:
+  - name: Name
+    type: string
+    json_name: name
+    dynamo_name: NAME
+  - name: Age
+    type: int
+    json_name: age
+    dynamo_name: AGE
+  - name: Email
+    type: string
+    json_name: email
+    dynamo_name: EMAIL
