@@ -53,7 +53,10 @@ To run the utility:
 ```
 
 To run the YAML generator:
+
+```bash
 ./target/release/yamlgen -j path/to/your.json -f path/to/output.yaml
+```
 
 - The go project have 2 env variables
 
