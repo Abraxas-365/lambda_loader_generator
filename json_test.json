@@ -1,0 +1,10 @@
+{
+  "name": "John Doe",
+  "age": 30,
+  "tags": ["developer", "gamer", "reader"],
+  "scores": [90, 85, 88, 78],
+  "contactInfo": {
+    "email": "johndoe@example.com",
+    "phoneNumber": "+1234567890"
+  }
+}
