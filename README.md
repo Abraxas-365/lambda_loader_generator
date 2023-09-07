@@ -15,7 +15,7 @@ A Rust-based CLI utility that generates aws lambdas to read a json from a S3 buc
 
 - Generates Go project structure including directories and Go files.
 - Populates generated Go files with predefined templates.
-- Reads input from a YAML configuration file.
+- Reads input from a YAML configuration file and create the necesary code.
 - Automatically runs `go mod tidy` to fetch Go module dependencies.
 
 ## TODO
