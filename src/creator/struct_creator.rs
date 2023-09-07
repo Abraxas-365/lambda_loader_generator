@@ -33,7 +33,15 @@ import (
 
 type {{name}} struct {
 {{#each fields}}
-    {{name}} {{type}} `json:"{{json_name}}" dynamodbav:"{{dynamo_name}}"`
+    {{#if nested_struct}}
+    {{name}} struct {
+    {{#each nested_struct.fields}}
+        {{name}} {{#if is_slice}}[]{{/if}}{{type}} `json:"{{json_name}}" dynamodbav:"{{dynamo_name}}"`
+    {{/each}}
+    } `json:"{{json_name}}" dynamodbav:"{{dynamo_name}}"`
+    {{else}}
+    {{name}} {{#if is_slice}}[]{{/if}}{{type}} `json:"{{json_name}}" dynamodbav:"{{dynamo_name}}"`
+    {{/if}}
 {{/each}}
 }
 
