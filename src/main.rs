@@ -9,6 +9,11 @@ use std::fs;
 use crate::creator::{generate_structure, initialize_go_project, populate_framework, GoStruct};
 
 fn main() {
+    if !check_go() {
+        eprintln!("Go is not installed. Please install Go and try again.");
+        exit(1);
+    }
+
     let yaml_str = fs::read_to_string("structs.yaml").expect("Unable to read the file");
     let go_struct: GoStruct = serde_yaml::from_str(&yaml_str).expect("Unable to parse the YAML");
 
@@ -39,4 +44,16 @@ fn main() {
     }
 
     println!("go mod tidy has been successfully executed.");
+}
+
+fn check_go() -> bool {
+    let check_go = Command::new("go")
+        .arg("version")
+        .output()
+        .expect("Failed to execute command");
+
+    if !check_go.status.success() {
+        return false;
+    }
+    true
 }
