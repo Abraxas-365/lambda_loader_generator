@@ -72,6 +72,44 @@ fields:
     type: "string"
 ```
 
+```yaml
+project_name: "MyGoProject"
+name: "Person"
+fields:
+  - name: "Name"
+    type: "string"
+    json_name: "name"
+    dynamo_name: "NAME"
+  - name: "Age"
+    type: "int"
+    json_name: "age"
+    dynamo_name: "AGE"
+  - name: "Tags"
+    type: "string"
+    is_slice: true
+    json_name: "tags"
+    dynamo_name: "TAGS"
+  - name: "Scores"
+    type: "int"
+    is_slice: true
+    json_name: "scores"
+    dynamo_name: "SCORES"
+  - name: "ContactInfo"
+    json_name: "contactInfo"
+    dynamo_name: "CONTACT_INFO"
+    nested_struct:
+      name: "Contact"
+      fields:
+        - name: "Email"
+          type: "string"
+          json_name: "email"
+          dynamo_name: "EMAIL"
+        - name: "PhoneNumber"
+          type: "string"
+          json_name: "phoneNumber"
+          dynamo_name: "PHONE_NUMBER"
+```
+
 ## Contribute
 
 Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
