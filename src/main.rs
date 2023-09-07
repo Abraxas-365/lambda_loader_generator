@@ -20,17 +20,23 @@ fn main() {
     populate_framework(&go_struct.project_name);
     generate_structure(&go_struct.name, &go_struct.fields, &go_struct.project_name);
 
-    if let Err(err) = Command::new("go")
-        .args(&["mod", "tidy", &go_struct.project_name])
-        .current_dir(&go_struct.project_name)
-        .output()
-    {
-        eprintln!("Error running tidy project: {}", err);
-        exit(1)
-    }
-
     println!(
         "Go code has been generated and saved to {}",
         &go_struct.project_name
     );
+    let go_mod_tidy = Command::new("go")
+        .args(&["mod", "tidy"])
+        .current_dir(&go_struct.project_name)
+        .output()
+        .expect("Failed to run go mod tidy");
+
+    if !go_mod_tidy.status.success() {
+        eprintln!(
+            "go mod tidy failed: {}",
+            String::from_utf8_lossy(&go_mod_tidy.stderr)
+        );
+        exit(1);
+    }
+
+    println!("go mod tidy has been successfully executed.");
 }
