@@ -18,6 +18,10 @@ A Rust-based CLI utility that generates aws lambdas to read a json from a S3 buc
 - Reads input from a YAML configuration file.
 - Automatically runs `go mod tidy` to fetch Go module dependencies.
 
+## TODO
+
+adding suport to hashmaps
+
 ## Requirements
 
 - Rust (latest stable version)
