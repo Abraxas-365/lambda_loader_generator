@@ -1,5 +1,5 @@
 project_name: "MyGoProject"
-name: Person
+name: person
 fields:
   - name: Name
     type: string

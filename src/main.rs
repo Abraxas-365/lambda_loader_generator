@@ -45,6 +45,10 @@ fn main() {
 
     let yaml_str = fs::read_to_string(yml_file).expect("Unable to read the file");
     let go_struct: GoStruct = serde_yaml::from_str(&yaml_str).expect("Unable to parse the YAML");
+    if let Err(err) = go_struct.validate() {
+        eprintln!("Validation error: {}", err);
+        exit(1);
+    }
 
     if let Err(err) = initialize_go_project(output_dir) {
         eprintln!("Error initializing Go project: {}", err);
