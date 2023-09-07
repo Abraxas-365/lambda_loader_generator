@@ -176,13 +176,12 @@ func LogError(ctx *lambdacontext.LambdaContext, err error) {
 }
 "#;
 
-const AWSOBJECT: &str = r#"
-package awsobject
+const AWSOBJECT: &str = r#"package awsobject
 
 import (
+	"encoding/csv"
 	"fmt"
-	"sync"
-	"io"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -192,7 +191,7 @@ import (
 
 type AwsSavableObjects interface {
 	Chunk(chunkSize int) [][]interface{}
-	FromJSONFileToArray(reader io.Reader) error
+	ReadFromCsv(reader *csv.Reader) error
 }
 
 type AwsClient struct {
@@ -213,20 +212,21 @@ func NewAwsClient(sess *session.Session, table string) *AwsClient {
 }
 
 func (a *AwsClient) BatchWriteItem(object AwsSavableObjects) error {
-	chunks := object.Chunk(25)
+	chunks := object.Chunk(1)
 	fmt.Println("Starting to write")
 
 	for _, chunk := range chunks {
+		fmt.Println(chunk)
 		// Create write requests
 		writeRequests, err := a.createWriteRequests(chunk)
 		if err != nil {
-			return err // Consider how you want to handle errors
+			return err
 		}
 
 		// Write the chunk
 		err = a.writeChunk(writeRequests)
 		if err != nil {
-			return err // Consider how you want to handle errors
+			return err
 		}
 	}
 
@@ -235,50 +235,49 @@ func (a *AwsClient) BatchWriteItem(object AwsSavableObjects) error {
 
 func (a *AwsClient) BatchWriteItemConcurrent(object AwsSavableObjects, concurrency int) error {
 	chunks := object.Chunk(25)
-	fmt.Println("Starting to write with concurrency:", concurrency)
+	fmt.Println("Starting to write")
 
-	var wg sync.WaitGroup
-	ch := make(chan []interface{}, concurrency)
-	errCh := make(chan error, concurrency)
+	semaphore := make(chan struct{}, concurrency)
+	errChan := make(chan error, len(chunks))
+	doneChan := make(chan bool, len(chunks))
 
-	worker := func() {
-		defer wg.Done()
+	for _, chunk := range chunks {
+		semaphore <- struct{}{} // Acquire a token
 
-		for chunk := range ch {
-			writeRequests, err := a.createWriteRequests(chunk)
+		go func(localChunk []interface{}) { // Make sure to use the appropriate type for ChunkType
+			defer func() {
+				<-semaphore // Release the token once done
+			}()
+
+			// Create write requests
+			writeRequests, err := a.createWriteRequests(localChunk)
 			if err != nil {
-				errCh <- err
-				continue
+				errChan <- err
+				return
 			}
 
+			// Write the chunk
 			err = a.writeChunk(writeRequests)
 			if err != nil {
-				errCh <- err
+				errChan <- err
+				return
 			}
 
+			doneChan <- true
+		}(chunk)
+	}
+
+	// Wait for all goroutines to finish
+	for i := 0; i < len(chunks); i++ {
+		select {
+		case err := <-errChan:
+			return err
+		case <-doneChan:
+			// successfully processed a chunk
 		}
 	}
 
-	for i := 0; i < concurrency; i++ {
-		wg.Add(1)
-		go worker()
-	}
-
-	for _, chunk := range chunks {
-		ch <- chunk
-	}
-
-	close(ch)
-	wg.Wait()
-
-	select {
-	case err := <-errCh:
-		close(errCh)
-		return err
-	default:
-		close(errCh)
-		return nil
-	}
+	return nil
 }
 
 func (a *AwsClient) createWriteRequests(chunk []interface{}) ([]*dynamodb.WriteRequest, error) {
@@ -302,19 +301,16 @@ func (a *AwsClient) createWriteRequests(chunk []interface{}) ([]*dynamodb.WriteR
 }
 
 func (a *AwsClient) writeChunk(writeRequests []*dynamodb.WriteRequest) error {
-	fmt.Println("Writing chunk")
 	input := &dynamodb.BatchWriteItemInput{
 		RequestItems: map[string][]*dynamodb.WriteRequest{
 			a.dynamoTable: writeRequests,
 		},
 	}
 
-	fmt.Println("Writing chunk2")
 	_, err := a.dynamodb.BatchWriteItem(input)
 	if err != nil {
 		return fmt.Errorf("Error writing items: %v", err)
 	}
-	fmt.Println("Writing chunk3")
 	return nil
 }
 
@@ -325,18 +321,16 @@ func (a *AwsClient) ReadFromS3(bucket, key string, object AwsSavableObjects) (Aw
 		Key:    aws.String(key),
 	}
 
-result, err := a.s3.GetObject(input)
+	result, err := a.s3.GetObject(input)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting object from S3: %w", err)
 	}
 
 	defer result.Body.Close()
 
-	// object.ReadFromCsv(csvReader) // We replace this line
-	err = object.FromJSONFileToArray(result.Body)
-	if err != nil {
-		return nil, err
-	}
+	csvReader := csv.NewReader(result.Body)
+
+	object.ReadFromCsv(csvReader)
 
 	return object, nil
 }
